@@ -1,5 +1,6 @@
 locals {
-  base_domain      = "tools-dev.camptocamp.com"
+  base_domain      = "localhost"
+  domain           = "locahost"
   cluster_issuer   = "letsencrypt-staging"
   cluster_name     = "mycluster"
   argocd_namespace = "argocd"
@@ -52,12 +53,10 @@ provider "helm" {
 
 module "argocd_bootstrap" {
 
-  # bootstrap require only this provider
   providers = {
     helm = helm.green
   }
 
-  #source = "git::https://github.com/camptocamp/devops-stack-module-argocd.git//bootstrap"
   source = "git::https://github.com/camptocamp/devops-stack-module-argocd.git//bootstrap?ref=bootstrap_minimal"
   #source = "../../is/devops-stack-module-argocd/bootstrap"
 
@@ -76,6 +75,20 @@ provider "argocd" {
   kubernetes {
     config_path = "~/.kube/config"
   }
+}
+
+module "oidc" {
+  source = "git::https://github.com/camptocamp/devops-stack-module-keycloak.git"
+
+  cluster_name = local.cluster_name
+  argocd = {
+    namespace = "argocd"
+    domain    = local.domain
+  }
+  base_domain    = local.domain
+  cluster_issuer = "ca-issuer"
+
+  depends_on = [module.ingress]
 }
 
 
